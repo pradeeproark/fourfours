@@ -18,12 +18,9 @@ main
 
 ) where
 
-import Text.ParserCombinators.Parsec
-import Text.Parsec.Token
+import Text.Parsec
+import Text.Parsec.String
 import Text.Parsec.Expr
-import Text.Parsec.Perm
-import Text.ParserCombinators.Parsec.Error
-import Data.Char
 
 
 
@@ -167,7 +164,7 @@ countFours  = length . filter (\x -> x == '4')
 -- 4-
 -- 4+4&100
 
-input = "(4+4)-(4/4)"
+input = "(4+44)-(4/4)"
 main =  do
         let count = countFours input
         if count == 4
