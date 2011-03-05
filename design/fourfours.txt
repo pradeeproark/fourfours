@@ -1,0 +1,65 @@
+Game for playing - Solve the 44 problem.
+
+Server maintains list of puzzles
+
+each puzzle is a number for which a correct expression has not been submitted which produces the number using the rules.
+The rules are that only the following operators are allowed addition ("+"), subtraction ("−"), multiplication ("×"), division ("÷"), and parentheses, as well as concatenation (e.g., "44" is allowed) and also allow the factorial ("!"), exponentiation (e.g. "444"),
+
+1. Users connect to chat server
+
+2. User can query available unsolved numbers
+
+> show solved
+0
+1
+2
+> show unsolved
+3
+4
+.
+50
+
+3. User can choose number to work on
+
+> pick 0
+0 is already solved.
+> pick 3
+User Genie has picked 3 to solve. 3 More people are working on number 3.
+
+4. Multiple users can choose a number to solve
+
+5. Once a valid answer has been submitted. The number is closed to others and no more answers are allowed.
+Valid answers are scored. Users can see their own scores as well other's scores.
+We limit the number of puzzles from 0-50
+
+>pick 1
+User Genie has picked 1
+>submit 44-44
+Answer is incorrect.
+>submit 44/44
+Answer is correct. 1 is closed. You have scored 1 point.
+
+>score self
+>score duckie
+Duckie has 13 points. 
+
+>scores
+You - 1
+Duckie - 13
+Pooh Bear - 3
+
+Duckie is leading.
+
+0 = 44-44
+1 = 44/44
+2 = (4/4) + (4/4)
+3 = (4+4+4)/4
+4 = (4!)-(4*4)-4
+5 = (4!/4)-(4/4)
+ 
+
+
+
+
+
+
