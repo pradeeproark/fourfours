@@ -6,15 +6,14 @@ license: AllRightsReserved
 license-file: ""
 copyright:
 maintainer:
-build-depends: base -any, parsec3 -any
+build-depends: websockets -any, utf8-string -any, parsec3 -any,
+               network -any, containers -any, bytestring -any, base -any
 stability:
 homepage:
 package-url:
 bug-reports:
 synopsis:
 description: .
-             .
-             .
 category:
 author:
 tested-with:
@@ -40,7 +39,7 @@ includes:
 install-includes:
 include-dirs:
 hs-source-dirs: src
-other-modules:
+other-modules: Chat Expr GameState
 ghc-prof-options:
 ghc-shared-options:
 ghc-options:
