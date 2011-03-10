@@ -18,15 +18,15 @@ main
 
 ) where
 
-import Chat
-import Expr
-import GameState
+import FourFours.Chat
+import FourFours.Expr
+import FourFours.GameState
+import FourFours.CommandParser
 
 input = "(4+4)-(4/4)"
 
-main =  do
-        print $ countFours input
---        if count == 4
---            then parseTest expr input
---            else print $ "4 4s not there. Found"; print count
+pickInput = "pick 2"
 
+--main =  print $ parseCommand pickInput
+
+main = chatMain initialState

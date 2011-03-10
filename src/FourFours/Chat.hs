@@ -1,7 +1,7 @@
 {-# Language OverloadedStrings #-}
 {-# Language GeneralizedNewtypeDeriving #-}
 {-# Language ScopedTypeVariables #-}
-module Chat where
+module FourFours.Chat where
 
 import System.IO (Handle, hClose)
 import Network.WebSockets (shakeHands, getFrame, putFrame)
@@ -17,42 +17,13 @@ import Control.Monad
 import Control.Exception
 import Prelude hiding (catch)
 import qualified Data.Map as Map
-import GameState
-newtype User = User { fromUser :: ByteString }
-  deriving (Eq, Ord, Show)
+import FourFours.GameState
 
-data Message = Join User Handle
-             | Leave User Handle
-             | Message User ByteString
-  deriving Show
 
---type GameState = Int
---
---a::GameState
---a = 5
 
-t :: Command
-t = FetchSolved True
---
-cmd :: Command
-cmd = FetchSolved True
---
-procMsg :: User -> ByteString -> FourFoursState -> ([(User,ByteString)],FourFoursState)
-procMsg user msg val = ([(user, msg)], process val cmd)
---
---gstate = FourFoursState [] [] (Map.fromList [])
-
---procMsg :: User -> ByteString -> GameState -> ([(User,ByteString)],GameState)
---procMsg user msg val = ([(user, fromString "Proced")],val)
-
---initialState = 5
-
-systemUser :: User
-systemUser = User { fromUser = fromString "<system>" }
-
-chatMain :: IO ()
-chatMain = withSocketsDo $ do
- initialGs <- newMVar initialState	
+chatMain :: FourFoursState -> IO ()
+chatMain ffs = withSocketsDo $ do
+ initialGs <- newMVar ffs	
  socket <- listenOn (PortNumber 12345)
  putStrLn "Listening on port 12345."
  channel <- newChan
@@ -70,11 +41,11 @@ listener channel h = do
     putFrame h (fromString "")
     user' <- getFrame h
     unless (B.null user') $ do
-      let user = User user'
+      let user = Player user'
       writeChan channel (Join user h)
       listenLoop user channel h
 
-listenLoop :: User -> Chan Message -> Handle -> IO ()
+listenLoop :: Player -> Chan Message -> Handle -> IO ()
 listenLoop user channel h = do
     msg <- getFrame h
     if (B.null msg)
@@ -88,24 +59,29 @@ dispatcher :: Chan Message -> [Handle] -> MVar FourFoursState -> IO ()
 dispatcher channel handles mog = do
   msg <- readChan channel
   putStrLn (show msg)
+  gs <- takeMVar mog
+  print gs
+  let (umsgs,ngs) = procMsg msg gs
+  putMVar mog ngs
+  print ngs
   case msg of
     Join user handle  -> do
       let handles' = (handle:handles)
-      broadcast handles' systemUser (fromUser user `B.append` fromString " joined :)")
+      broadcast2 handles' systemUser umsgs
       dispatcher channel handles' mog
     Leave user handle -> do
       let handles' = filter (/= handle) handles
-      broadcast handles' systemUser (fromUser user `B.append` fromString " left :(")
+      broadcast2 handles' systemUser umsgs
       dispatcher channel handles' mog
     Message user message  -> do
-      gs <- takeMVar mog
-      print gs
-      let (umsgs,ngs) = procMsg user message gs
-      putMVar mog ngs
-      forM_ umsgs $ \(usr,umsg) -> do broadcast handles usr umsg
-      --broadcast handles user message
+      broadcast2 handles user umsgs
       dispatcher channel handles mog
 
-broadcast :: [Handle] -> User -> ByteString -> IO ()
+broadcast :: [Handle] -> Player -> ByteString -> IO ()
 broadcast handles user msg = forM_ handles $ \h -> do
-  (putFrame h $ B.concat [fromUser user, fromString ": ", msg]) `catch` (\(e :: SomeException) -> return ())
+  (putFrame h $ B.concat [playerName user, fromString ": ", msg]) `catch` (\(e :: SomeException) -> return ())
+
+
+broadcast2 :: [Handle] -> Player -> ByteString -> IO ()
+broadcast2 handles user msg = forM_ handles $ \h -> do
+  (putFrame h $ msg) `catch` (\(e :: SomeException) -> return ())

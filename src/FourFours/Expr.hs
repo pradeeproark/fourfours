@@ -12,11 +12,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Expr (
-
-countFours
-
-) where
+module FourFours.Expr  where
 
 import Text.Parsec
 import Text.Parsec.String
@@ -24,6 +20,7 @@ import Text.Parsec.Expr
 
 --TODO: do factorial implementation
 fac x = x
+
 
 expr    :: Parser Int
 expr    = buildExpressionParser table factor
@@ -44,14 +41,14 @@ factor  = do{ char '('
             ; char ')'
             ; return x
             }
-        <|> number
+        <|> fournumber
         <?> "simple expression"
 
 
 
 
-number  :: Parser Int
-number  = do{ ds <- try (count 2 (char '4'))  <|> try (count 1 (char '4'))
+fournumber  :: Parser Int
+fournumber  = do{ ds <- try (count 2 (char '4'))  <|> try (count 1 (char '4'))
             ; optional eof
             ; return (read ds)
             }

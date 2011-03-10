@@ -6,8 +6,9 @@ license: AllRightsReserved
 license-file: ""
 copyright:
 maintainer:
-build-depends: websockets -any, utf8-string -any, parsec3 -any,
-               network -any, containers -any, bytestring -any, base -any
+build-depends: base -any, bytestring -any, containers -any,
+               json -any, network -any, parsec3 -any, utf8-string -any,
+               websockets -any
 stability:
 homepage:
 package-url:
@@ -39,7 +40,8 @@ includes:
 install-includes:
 include-dirs:
 hs-source-dirs: src
-other-modules: Chat Expr GameState
+other-modules: FourFours.Chat FourFours.CommandParser
+               FourFours.Expr FourFours.GameState
 ghc-prof-options:
 ghc-shared-options:
 ghc-options:

@@ -1,109 +1,181 @@
-
-module GameState  where
-
+{-# Language DeriveDataTypeable #-}
+module FourFours.GameState  where
+import FourFours.CommandParser
+import FourFours.Expr
 import Data.Maybe
 import qualified Data.Map as Map
+import Text.Parsec
+import Text.Parsec.String
+import System.IO (Handle)
+import Data.ByteString (ByteString)
+import Data.ByteString.UTF8 (fromString, toString)
+import Data.Typeable
+import Data.Data
+import Text.JSON.Generic
 
 type PlayerName = String
 type Solved = Bool
 type Score = Int
 
 
+data Message = Join Player Handle
+             | Leave Player Handle
+             | Message Player ByteString
+  deriving Show
+
 data Problem = Problem { number:: Int
-						,solved :: Bool
-					   } deriving (Eq, Show)
+						,solution :: String
+					   } deriving (Eq, Show, Typeable, Data)
 
 data Player = Player
-					{ playerName::String
-					  ,score::Int
-					} deriving (Eq, Show, Ord)
+					{ playerName::ByteString					
+					} deriving (Eq, Show, Ord, Typeable, Data)
 
--- data Challenge = Challenge
--- 					{ problem:: Problem
--- 					  ,players:: [Player]
--- 					} deriving (Show)
---
---
+
 data FourFoursState = FourFoursState
  				 {
- 					   allplayers:: [Player]
- 					  ,problems::[Problem]
+ 				       challengeFrom ::Int
+ 				       ,challengeTo ::Int
+ 					   ,allplayers:: [Player]
  					  ,challenges::Map.Map Player Problem
- 				 }deriving (Show)
+ 				 }deriving (Show, Typeable, Data)
 
 
-data Command = Pick Player Problem
- 			   | FetchSolved Bool deriving (Show)
+data Command = FetchSolved Bool
+ 			   | SubmitSolution Player Problem String -- (Parser Int)
+ 			   | Score Player
+ 			   | Scores
+               | Enter Player
+               | Exit Player
+               | SendMessage Player ByteString deriving (Show)
+ 			
 
-prob1 = Problem 1 False
-prob2 = Problem 2 False
-prob3 = Problem 3 True
+data Response = Response
+                {
+                  from::ByteString,
+                  msg::String,
+                  scores::[(ByteString,Int)],
+                  submissions::[(Int,ByteString,String)]
+                } deriving (Show, Typeable, Data)
 
-player1 = Player "Gee" 0
-player2 = Player "Gah" 0
-player3 = Player "Goo" 0
+submitParser :: Parser Problem
+submitParser = do
+               {
+                 ;string "submit"
+                 ;skipMany1 space
+                 ;number <- many1 digit
+                 ;skipMany1 space
+                 ;ans <- expr
+                 ;eof
+                 ;return (Problem (read number::Int) (show ans))
+               }
 
-echallenges = Map.fromList ([(player1,prob1), (player2,prob1)])
+--resp = Response (fromString "Gee") "Hello" [((fromString "Gee"),0)] [(1,(fromString "Gah"),"44/44")]
 
-initialState = FourFoursState [player1, player2, player3] [prob1,prob2,prob3] (Map.fromList [])
-picky = (player3,prob2)
+getScoreTbl :: Map.Map Player Problem -> [(ByteString,Int)]
+getScoreTbl mpp = map  (\(player,problem) -> (playerName player, 0)) (Map.assocs mpp)
 
-nProb1 = Problem 1 True
 
-nchallenges = Map.insert player1 prob3 echallenges
+getSubmissionsTbl :: Map.Map Player Problem -> [(Int,ByteString,String)]
+getSubmissionsTbl mpp = map  (\(player,problem) -> ((number problem),(playerName player), (solution problem))) (Map.assocs mpp)
 
-isProblemSolved :: Problem -> Map.Map Player Problem -> Bool
-isProblemSolved problem mpp =  Map.size(Map.filter (\prob -> prob == problem && solved prob) mpp) > 0
+toResponse :: Player -> String -> FourFoursState -> Response
+toResponse player msg gs = Response (playerName player) msg (getScoreTbl (challenges gs)) (getSubmissionsTbl (challenges gs))
 
-isPlayerFree :: Player -> Map.Map Player Problem -> Bool
-isPlayerFree player mpp = not (Map.member player mpp)
+responseToJSON :: Response -> String
+responseToJSON resp = encode $ toJSON resp
 
-pick :: Player -> Problem -> Map.Map Player Problem -> Map.Map Player Problem
-pick player problem mpp
-			| isPlayerFree player mpp && not (isProblemSolved problem mpp) = Map.insert player problem mpp
-			| otherwise = mpp
+systemUser = Player (fromString "<system>")
 
-pickOnGS :: FourFoursState -> Player -> Problem -> FourFoursState
-pickOnGS gs player problem = FourFoursState  (allplayers gs) (problems gs) (pick player problem (challenges gs))
-			
+--prob1 = Problem 1 ""
+--prob2 = Problem 2 ""
+--prob3 = Problem 3 ""
+--
+--player1 = Player (fromString "Gee")
+--player2 = Player (fromString "Gah")
+--player3 = Player (fromString "Goo")
+
+--echallenges = Map.fromList ([(player1,prob1), (player2,prob1)])
+
+initialState = FourFoursState 0 50 [] (Map.fromList [])
+
+--picky = (player3,prob2)
+--
+--nProb1 = Problem 1 "44/44"
+
+--nchallenges = Map.insert player1 prob3 echallenges
+
+--isProblemSolved :: Problem -> Map.Map Player Problem -> Bool
+--isProblemSolved problem mpp =  Map.size(Map.filter (\prob -> prob == problem && solved prob) mpp) > 0
+--
+--isPlayerFree :: Player -> Map.Map Player Problem -> Bool
+--isPlayerFree player mpp = not (Map.member player mpp)
+--
+--pick :: Player -> Problem -> Map.Map Player Problem -> Map.Map Player Problem
+--pick player problem mpp
+--			| isPlayerFree player mpp && not (isProblemSolved problem mpp) = Map.insert player problem mpp
+--			| otherwise = mpp
+--
+--pickOnGS :: FourFoursState -> Player -> Problem -> FourFoursState
+--pickOnGS gs player problem = FourFoursState  (allplayers gs) (problems gs) (pick player problem (challenges gs))
+--			
+
+updateChallenges :: FourFoursState -> Map.Map Player Problem -> FourFoursState
+updateChallenges gs mpp = FourFoursState (challengeFrom gs) (challengeTo gs) (allplayers gs) mpp
+
 solvedProblems :: Map.Map Player Problem -> [Problem]
-solvedProblems mpp = Map.elems (Map.filter (\prob -> solved prob) mpp)
+solvedProblems mpp = Map.elems mpp
 						
-process :: FourFoursState -> Command -> FourFoursState
-process gs (Pick player problem) = pickOnGS gs player problem
-process gs _ = gs						
--- challenge1 = Challenge prob1 []
--- challenge2 = Challenge prob2 []
--- challenge3 = Challenge prob3 [player2, player3]
---
--- gstate = GameState [player1,player2,player3] [prob1, prob2, prob3] [challenge1, challenge2, challenge3]
--- show solved
-
-mProb = Map.fromList ([(player1,prob1) , (player2,prob2)])
-
--- getProblemsWhich :: (Maybe Player -> Bool) -> GameState  -> [Problem]
--- getProblemsWhich cond gs =  map problem (filter (\c -> cond(solvedBy((problem c))) ) (challenges gs))
---
--- getChallengeWithProblem :: Problem -> [Challenge] -> Maybe Challenge
--- getChallengeWithProblem prb challenges = find (\c -> problem c == prb) challenges
---
--- canPick :: Player -> [Challenge] -> Bool
--- canPick player challenges = not (any (\c -> (elem player (players c))) challenges)
---
--- pickExistingChallenge :: Player -> Problem -> Challenge -> Challenge
--- pickExistingChallenge player problem challenge = Challenge problem (player:(players challenge))
---
--- pickNewChallenge :: Player -> Problem -> Challenge
--- pickNewChallenge player problem = Challenge problem [player]
-
---create a new challenge or become part of a challenge
+isValidAnswer :: Problem -> String -> Bool
+isValidAnswer prob solution = True
 
 
---gstate = GameState [player1,player2,player3] [prob1, prob2, prob3] [challenge1, challenge2, challenge3]
+isValidProblem :: FourFoursState -> Problem -> Bool
+isValidProblem gs prob
+            | (number prob >= challengeFrom gs && number prob <= challengeTo gs) = True
+            | otherwise = False
 
--- isSolved :: Problem -> Challenge -> Bool
--- isSolved prb chlg =
---
---
--- isProblemSolved :: Problem -> [Challenge] -> Bool
--- isProblemSolved prb challenges = any (\c -> isSolved c prb) challenges
+submitAnswer :: FourFoursState -> Player -> Problem -> String -> FourFoursState
+submitAnswer gs player prob solution
+                    | isValidProblem gs prob && not (prob `elem` (Map.elems (challenges gs))) && isValidAnswer prob solution = updateChallenges gs (Map.insert player prob (challenges gs))
+                    | otherwise = gs  						
+
+
+updatePlayer :: FourFoursState -> Player -> FourFoursState
+updatePlayer gs player
+            | not (player `elem` allplayers gs) = FourFoursState (challengeFrom gs) (challengeTo gs) (player:(allplayers gs)) (challenges gs)
+            | otherwise = gs
+						
+process :: FourFoursState  -> Command -> (ByteString, FourFoursState)
+process gs (Enter player) = let ngs = updatePlayer gs player in (fromString "Entered player", ngs)
+process gs (SubmitSolution player prob answer) = let ngs = (submitAnswer gs player prob answer) in (fromString(responseToJSON(toResponse player "submitted" ngs)),ngs)
+--process gs (Pick player problem) = (Map.fromList ([(player,fromString "picked")]), pickOnGS gs player problem)
+--process gs (FetchSolved solved) = (Map.fromList ([]), pickOnGS gs player problem)
+--process gs (Pick player problem) = (Map.fromList ([]), pickOnGS gs player problem)
+process gs (SendMessage player msg) = (fromString(responseToJSON(toResponse player (toString msg) gs)), gs)
+process gs _ = (fromString "", gs)						
+
+--cmd = Pick player1 prob1
+
+
+
+--mProb = Map.fromList ([(player1,prob1) , (player2,prob2)])
+
+parseCommand :: String -> Player -> Command
+parseCommand input player = case(parse submitParser "" input) of
+                                Left err -> SendMessage player (fromString input)
+                                Right prob -> SubmitSolution player prob (solution prob)
+--parseCommand "show solved" player = FetchSolved True
+--parseCommand "show unsolved" player = FetchSolved False
+--parseCommand "score" player = Score player
+--parseCommand "scores" player = Scores
+--parseCommand msg player = SendMessage player (fromString msg)
+
+
+messageToCommand :: Message -> Command
+messageToCommand (Join usr handle) = Enter usr
+messageToCommand (Leave usr handle) = Exit usr
+messageToCommand (Message usr msg) = parseCommand (toString msg) usr
+
+procMsg :: Message -> FourFoursState -> (ByteString, FourFoursState)
+procMsg msg val = process val (messageToCommand msg)
