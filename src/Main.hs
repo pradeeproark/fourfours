@@ -21,7 +21,7 @@ main
 import FourFours.Chat
 import FourFours.Expr
 import FourFours.GameState
-import FourFours.CommandParser
+
 
 input = "(4+4)-(4/4)"
 
