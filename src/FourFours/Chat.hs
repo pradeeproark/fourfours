@@ -6,11 +6,9 @@ module FourFours.Chat where
 import System.IO (Handle, hClose)
 import Network.WebSockets (shakeHands, getFrame, putFrame)
 import Network (listenOn, PortID(PortNumber), accept, withSocketsDo)
-import System.IO (Handle, hClose)
 import qualified Data.ByteString as B
 import Data.ByteString (ByteString)
 import Data.ByteString.UTF8 (fromString) -- this is from utf8-string
-import Control.Monad (forever)
 import Control.Concurrent
 import Control.Concurrent.Chan
 import Control.Monad
@@ -48,8 +46,8 @@ listener channel h = do
 listenLoop :: Player -> Chan Message -> Handle -> IO ()
 listenLoop user channel h = do
     msg <- getFrame h
-    if (B.null msg)
-      then do
+    if B.null msg
+      then
         writeChan channel (Leave user h)
       else do
         writeChan channel (Message user msg)
@@ -58,7 +56,7 @@ listenLoop user channel h = do
 dispatcher :: Chan Message -> [Handle] -> MVar FourFoursState -> IO ()
 dispatcher channel handles mog = do
   msg <- readChan channel
-  putStrLn (show msg)
+  print msg
   gs <- takeMVar mog
   print gs
   let (umsgs,ngs) = procMsg msg gs
@@ -77,11 +75,7 @@ dispatcher channel handles mog = do
       broadcast2 handles user umsgs
       dispatcher channel handles mog
 
-broadcast :: [Handle] -> Player -> ByteString -> IO ()
-broadcast handles user msg = forM_ handles $ \h -> do
-  (putFrame h $ B.concat [playerName user, fromString ": ", msg]) `catch` (\(e :: SomeException) -> return ())
-
 
 broadcast2 :: [Handle] -> Player -> ByteString -> IO ()
-broadcast2 handles user msg = forM_ handles $ \h -> do
-  (putFrame h $ msg) `catch` (\(e :: SomeException) -> return ())
+broadcast2 handles user msg = forM_ handles $ \h ->
+  putFrame h msg `catch` (\ (e :: SomeException) -> return ())

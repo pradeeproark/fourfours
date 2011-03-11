@@ -1,6 +1,11 @@
-
 <html><head>
     <title>WebSocket Chat</title>
+<link rel="stylesheet" href="css/smoothness/jquery-ui-1.8.10.custom.css" type="text/css" media="screen" title="no title" charset="utf-8">
+
+	<style type="text/css" media="screen">
+				@import "/css/demo_table_jui.css";
+				
+	</style>
     <script type="text/javascript" language="javascript" src="js/jquery.js"></script>
 	<script type="text/javascript" language="javascript" src="js/jquery.dataTables.js"></script>
     <script type='text/javascript'>
@@ -105,6 +110,7 @@
 		// data = {"from":"Gee","msg":"Hello","scores":[["Gee",0]],"submissions":[[1,"Gah","44/44"]]};
 	      //  $L('chat').innerHTML = '<B>'+data.from+'</B>' + ': ' + data.msg;
 		$('#score').dataTable( {
+			"bJQueryUI": true,
 			"bDestroy" : true,
 			"aaData": [],
 			"aoColumns": [
@@ -114,6 +120,7 @@
 		} );
 		
 		$('#submissions').dataTable( {
+			"bJQueryUI": true,
 			"bDestroy" : true,
 			"aaData": [],
 			"aoColumns": [
@@ -157,8 +164,8 @@ $L('sendB').onclick = function(event) { room.chat($F('phrase')); $L('phrase').va
 </script>
 
 <div id="statDisplay">
-	<table border="1" class="display" id="score"></table>
-	<table border="1" class="display" id="submissions"></table>
+	<table id="score"></table>
+	<table id="submissions"></table>
 	
 </div>
 </body></html>

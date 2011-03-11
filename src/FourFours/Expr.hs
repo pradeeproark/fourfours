@@ -28,11 +28,11 @@ expr    = buildExpressionParser table factor
 
 table   = [[op "*" (*) AssocLeft, op "/" div AssocLeft]
           ,[op "+" (+) AssocLeft, op "-" (-) AssocLeft]
-          ,[postfix "!" (fac) ]
+          ,[postfix "!" fac ]
           ]
         where
-          op s f assoc
-                 = Infix (do{ string s; return f}) assoc
+          op s f
+                 = Infix (do{ string s; return f})
 
 postfix  name fun  = Postfix (do{ string name; return fun })
 
@@ -56,7 +56,7 @@ fournumber  = do{ ds <- try (count 2 (char '4'))  <|> try (count 1 (char '4'))
 
 
 countFours :: String -> Int
-countFours  = length . filter (\x -> x == '4')
+countFours  = length . filter (== '4')
 
 
 

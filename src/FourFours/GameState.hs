@@ -75,7 +75,7 @@ getScoreTbl mpp = map  (\(problem, player) -> (playerName player, 0)) (Map.assoc
 
 
 getSubmissionsTbl :: Map.Map Problem Player -> [(Int,ByteString,String)]
-getSubmissionsTbl mpp = map  (\(problem, player) -> ((number problem),(playerName player), (solution problem))) (Map.assocs mpp)
+getSubmissionsTbl mpp = map  (\(problem, player) -> (number problem,playerName player,solution problem)) (Map.assocs mpp)
 
 toResponse :: Player -> String -> FourFoursState -> Response
 toResponse player msg gs = Response (playerName player) msg (getScoreTbl (challenges gs)) (getSubmissionsTbl (challenges gs))
@@ -90,7 +90,7 @@ initialState = FourFoursState 0 50 [] (Map.fromList [])
 		
 
 updateChallenges :: FourFoursState -> Map.Map Problem Player-> FourFoursState
-updateChallenges gs mpp = FourFoursState (challengeFrom gs) (challengeTo gs) (allplayers gs) mpp
+updateChallenges gs = FourFoursState (challengeFrom gs) (challengeTo gs) (allplayers gs)
 
 						
 isValidAnswer :: Problem -> String -> Bool
@@ -99,18 +99,18 @@ isValidAnswer prob solution = True
 
 isValidProblem :: FourFoursState -> Problem -> Bool
 isValidProblem gs prob
-            | (number prob >= challengeFrom gs && number prob <= challengeTo gs) = True
+            | number prob >= challengeFrom gs && number prob <= challengeTo gs = True
             | otherwise = False
 
 submitAnswer :: FourFoursState -> Player -> Problem -> String -> FourFoursState
 submitAnswer gs player prob solution
-                    | isValidProblem gs prob && not (prob `elem` (Map.keys (challenges gs))) = updateChallenges gs (Map.insert prob player (challenges gs))
+                    | isValidProblem gs prob && notElem prob (Map.keys (challenges gs)) = updateChallenges gs (Map.insert prob player (challenges gs))
                     | otherwise = gs  						
 
 
 updatePlayer :: FourFoursState -> Player -> FourFoursState
 updatePlayer gs player
-            | not (player `elem` allplayers gs) = FourFoursState (challengeFrom gs) (challengeTo gs) (player:(allplayers gs)) (challenges gs)
+            | player `notElem` allplayers gs = FourFoursState (challengeFrom gs) (challengeTo gs) (player : allplayers gs) (challenges gs)
             | otherwise = gs
 						
 process :: FourFoursState  -> Command -> (ByteString, FourFoursState)
@@ -122,10 +122,10 @@ process gs _ = (fromString "", gs)
 
 
 parseCommand :: String -> Player -> Command
-parseCommand input player = case(parse submitParser "" input) of
+parseCommand input player = case parse submitParser "" input of
                                 Left err -> SendMessage player (fromString input)
                                 Right prob
-                                    | countFours (input) == 4 && (number prob == read (solution prob)) -> SubmitSolution player (Problem (number prob) input) (input)
+                                    | countFours input == 4 && (number prob == read (solution prob)) -> SubmitSolution player (Problem (number prob) input) input
                                     | otherwise -> SendMessage player (fromString "Invalid answer")
 
 
