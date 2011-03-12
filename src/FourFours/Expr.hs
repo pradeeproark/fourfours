@@ -18,23 +18,24 @@ import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Expr
 
---TODO: do factorial implementation
-fac x = x
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
 
 
 expr    :: Parser Int
 expr    = buildExpressionParser table factor
         <?> "expression"
 
-table   = [[op "*" (*) AssocLeft, op "/" div AssocLeft]
+table   = [ [postfix "!" factorial ]
+          ,[op "*" (*) AssocLeft, op "/" div AssocLeft]
           ,[op "+" (+) AssocLeft, op "-" (-) AssocLeft]
-          ,[postfix "!" fac ]
+
           ]
         where
           op s f
                  = Infix (do{ string s; return f})
+          postfix name fun = Postfix (do{ string name; return fun })
 
-postfix  name fun  = Postfix (do{ string name; return fun })
 
 factor  = do{ char '('
             ; x <- expr
