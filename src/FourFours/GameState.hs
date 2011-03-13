@@ -4,6 +4,7 @@ module FourFours.GameState  where
 import FourFours.Expr
 import Data.Maybe
 import qualified Data.Map as Map
+import Data.List(nub,group)
 import Text.Parsec
 import Text.Parsec.String
 import System.IO (Handle)
@@ -71,8 +72,7 @@ submitParser = do
                }
 
 getScoreTbl :: Map.Map Problem Player -> [(ByteString,Int)]
-getScoreTbl mpp = map  (\(problem, player) -> (playerName player, 0)) (Map.assocs mpp)
-
+getScoreTbl mpp = let pNames = map playerName (Map.elems mpp) in zip (nub pNames) (map length (group pNames))
 
 getSubmissionsTbl :: Map.Map Problem Player -> [(Int,ByteString,String)]
 getSubmissionsTbl mpp = map  (\(problem, player) -> (number problem,playerName player,solution problem)) (Map.assocs mpp)
