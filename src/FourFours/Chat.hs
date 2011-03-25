@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+
+-- This module alone originally written as an exercise in the london Hoodlums group. Enhanced by Pradeep Kumar to maintain state using MVar
+
 module FourFours.Chat where
 import System.IO (Handle)
 import Network.WebSockets (shakeHands, getFrame, putFrame)
